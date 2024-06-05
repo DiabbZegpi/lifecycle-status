@@ -1,3 +1,18 @@
+# Set databse connection
+set_connection <- function(db_name = "cat-db") {
+  cat_db <- config::get(value = db_name)
+  conn <-
+    dbConnect(
+      drv = odbc::odbc(),
+      driver = cat_db$driver,
+      server = cat_db$server,
+      database = cat_db$database,
+      uid = cat_db$uid,
+      pwd = cat_db$pwd
+    )
+  conn
+}
+
 # Query the database connection
 query <- function(conn, table_name) {
   db_name <- DBI::dbGetInfo(conn)$dbname
