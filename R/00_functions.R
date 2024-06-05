@@ -2,7 +2,7 @@
 set_connection <- function(db_name = "cat-db") {
   cat_db <- config::get(value = db_name)
   conn <-
-    dbConnect(
+    DBI::dbConnect(
       drv = odbc::odbc(),
       driver = cat_db$driver,
       server = cat_db$server,
