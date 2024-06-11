@@ -2,6 +2,7 @@ library(tidyverse)
 library(DBI)
 library(here)
 source(here("R", "00_functions.R"))
+
 # Database connection -----------------------------------------------------
 conn <- set_connection()
 
@@ -75,7 +76,7 @@ forecast <-
     fill = list(FORECAST = 0)
   )
 
-write_rds(master_data, here("pre-processed data", "master_data.rds"))
-write_rds(active_sku, here("pre-processed data", "active_sku.rds"))
-write_rds(sell_in, here("pre-processed data", "sell_in.rds"))
-write_rds(forecast, here("pre-processed data", "forecast.rds"))
+write_rds(master_data, here("pre-processed data", "master_data.rds"), compress = "gz")
+write_rds(active_sku, here("pre-processed data", "active_sku.rds"), compress = "gz")
+write_rds(sell_in, here("pre-processed data", "sell_in.rds"), compress = "gz")
+write_rds(forecast, here("pre-processed data", "forecast.rds"), compress = "gz")
