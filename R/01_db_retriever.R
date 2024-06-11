@@ -35,7 +35,6 @@ forecast_raw <-
   )
 
 # Pre-processing -----------------------------------------------------------
-
 master_data <-
   master_data_qr |>
   distinct(COUNTRY, BASECODE, SKU) |>
@@ -76,6 +75,9 @@ forecast <-
     fill = list(FORECAST = 0)
   )
 
+dbDisconnect(conn)
+
+# Export data -------------------------------------------------------------
 write_rds(master_data, here("pre-processed data", "master_data.rds"), compress = "gz")
 write_rds(active_sku, here("pre-processed data", "active_sku.rds"), compress = "gz")
 write_rds(sell_in, here("pre-processed data", "sell_in.rds"), compress = "gz")
