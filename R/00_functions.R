@@ -1,4 +1,4 @@
-# Set databse connection
+# Set database connection
 set_connection <- function(db_name = "cat-db") {
   cat_db <- config::get(value = db_name)
   conn <-
