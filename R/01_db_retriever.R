@@ -1,5 +1,6 @@
 library(tidyverse)
 library(DBI)
+library(bit64)
 library(here)
 source(here("R", "00_functions.R"))
 
@@ -32,7 +33,8 @@ forecast_raw <-
       FORECAST = OPER_FCST
     ),
     locale = locale(decimal_mark = ",")
-  )
+  ) |>
+  mutate(SKU = as.integer64(SKU))
 
 # Pre-processing -----------------------------------------------------------
 master_data <-
