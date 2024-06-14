@@ -1,7 +1,7 @@
 library(tidyverse)
-library(bit64)
 library(here)
 library(furrr)
+library(bit64, include.only = "integer64")
 
 # Import data -------------------------------------------------------------
 master_data <- read_rds(here("pre-processed data", "master_data.rds"))
@@ -38,8 +38,7 @@ bcode_sales <-
 
 
 # Feature engineering on history ------------------------------------------
-last_period_observed <- max(bcode_lifecycle$PERIOD)
-
+# last_period_observed <- max(bcode_lifecycle$PERIOD)
 history_features <-
   bcode_sales |>
   group_by(COUNTRY, BASECODE, APO_CUST_LEVEL2_CODE) |>
@@ -65,17 +64,32 @@ plan(multisession, workers = workers)
 
 history_features |>
   nest(history = c(PERIOD, SELL_IN_VOL, drop_zero_flag)) |>
+  slice(1:100) |>
   mutate(
+    # Create window datasets
     history_36 = future_map(history, ~ slice_tail(.x, n = 36)),
     history_24 = future_map(history, ~ slice_tail(.x, n = 24)),
-    history_12 = future_map(history, ~ slice_tail(.x, n = 12))
-  )
-  summarize(
-    positive_last_12 = sum(SELL_IN_VOL > 0),
-    zeros_last_12 = sum(SELL_IN_VOL == 0),
-    .groups = "drop"
-  )
-
+    history_12 = future_map(history, ~ slice_tail(.x, n = 12)),
+    # How many positives in the last n months?
+    positive_last_36 = future_map_dbl(history_36, ~ sum(.x$SELL_IN_VOL > 0)),
+    positive_last_24 = future_map_dbl(history_24, ~ sum(.x$SELL_IN_VOL > 0)),
+    positive_last_12 = future_map_dbl(history_12, ~ sum(.x$SELL_IN_VOL > 0)),
+    # How many drop to/raise from zero in the last n months?
+    drop_to_zero_36 = future_map_dbl(history_36, ~ sum(.x$drop_zero_flag == "drop_to_zero")),
+    drop_to_zero_24 = future_map_dbl(history_24, ~ sum(.x$drop_zero_flag == "drop_to_zero")),
+    drop_to_zero_12 = future_map_dbl(history_12, ~ sum(.x$drop_zero_flag == "drop_to_zero")),
+    raise_from_zero_36 = future_map_dbl(history_36, ~ sum(.x$drop_zero_flag == "raise_from_zero")),
+    raise_from_zero_24 = future_map_dbl(history_24, ~ sum(.x$drop_zero_flag == "raise_from_zero")),
+    raise_from_zero_12 = future_map_dbl(history_12, ~ sum(.x$drop_zero_flag == "raise_from_zero")),
+    # How long are the valleys?
+    constant_zero_36 = future_map_dbl(history_36, ~ sum(.x$drop_zero_flag == "constant_zero")),
+    constant_zero_24 = future_map_dbl(history_24, ~ sum(.x$drop_zero_flag == "constant_zero")),
+    constant_zero_12 = future_map_dbl(history_12, ~ sum(.x$drop_zero_flag == "constant_zero")),
+    constant_positive_36 = future_map_dbl(history_36, ~ sum(.x$drop_zero_flag == "constant_positive")),
+    constant_positive_24 = future_map_dbl(history_24, ~ sum(.x$drop_zero_flag == "constant_positive")),
+    constant_positive_12 = future_map_dbl(history_12, ~ sum(.x$drop_zero_flag == "constant_positive"))
+  ) |>
+  select(-matches("history_"))
 
 
 
