@@ -93,5 +93,47 @@ history_features_processed <-
   ) |>
   select(-matches("history"))
 
-history_features_processed
+
+# Feature engineering on forecast -----------------------------------------
+forecast_features_processed <-
+  forecast |>
+  left_join(
+    master_data,
+    by = join_by(COUNTRY, SKU),
+    relationship = "many-to-one",
+    na_matches = "never"
+  ) |>
+  na.omit() |>
+  group_by(COUNTRY, BASECODE, APO_CUST_LEVEL2_CODE) |>
+  arrange(PERIOD, .by_group = TRUE) |>
+  ungroup() |>
+  nest(forecast = c(PERIOD, FORECAST)) |>
+  mutate(
+    # Create window datasets
+    forecast_3 = future_map(forecast, ~ slice_head(.x, n = 3)),
+    forecast_6 = future_map(forecast, ~ slice_head(.x, n = 6)),
+    # How many positives in the first h months?
+    positive_first_3 = future_map_dbl(forecast_3, ~ sum(.x$FORECAST > 0)),
+    positive_first_6 = future_map_dbl(forecast_6, ~ sum(.x$FORECAST > 0))
+  )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
