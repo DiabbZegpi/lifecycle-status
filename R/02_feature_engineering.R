@@ -23,7 +23,8 @@ bcode_sales <-
     SELL_IN_VOL = sum(SELL_IN_VOL),
     .groups = "drop"
   ) |>
-  na.omit()
+  na.omit() |>
+  filter(COUNTRY != "AE")
 
 # bcode_lifecycle <-
 #   active_sku |>
@@ -62,9 +63,10 @@ history_features <-
 workers <- parallel::detectCores(logical = FALSE)
 plan(multisession, workers = workers)
 
-history_features |>
+history_features_processed <-
+  history_features |>
   nest(history = c(PERIOD, SELL_IN_VOL, drop_zero_flag)) |>
-  slice(1:100) |>
+  # slice(1:100) |>
   mutate(
     # Create window datasets
     history_36 = future_map(history, ~ slice_tail(.x, n = 36)),
@@ -89,7 +91,7 @@ history_features |>
     constant_positive_24 = future_map_dbl(history_24, ~ sum(.x$drop_zero_flag == "constant_positive")),
     constant_positive_12 = future_map_dbl(history_12, ~ sum(.x$drop_zero_flag == "constant_positive"))
   ) |>
-  select(-matches("history_"))
+  select(-matches("history"))
 
-
+history_features_processed
 
