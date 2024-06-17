@@ -115,7 +115,10 @@ forecast_features_processed <-
     # How many positives in the first h months?
     positive_first_3 = future_map_dbl(forecast_3, ~ sum(.x$FORECAST > 0)),
     positive_first_6 = future_map_dbl(forecast_6, ~ sum(.x$FORECAST > 0))
-  )
+  ) |>
+  select(-matches("forecast"))
+
+# Merge history and forecast ----------------------------------------------
 
 
 
