@@ -103,8 +103,9 @@ forecast_features_processed <-
     relationship = "many-to-one",
     na_matches = "never"
   ) |>
+  group_by(COUNTRY, BASECODE, APO_CUST_LEVEL2_CODE, PERIOD) |>
+  summarize(FORECAST = sum(FORECAST, na.rm = TRUE), .groups = "drop_last") |>
   na.omit() |>
-  group_by(COUNTRY, BASECODE, APO_CUST_LEVEL2_CODE) |>
   arrange(PERIOD, .by_group = TRUE) |>
   ungroup() |>
   nest(forecast = c(PERIOD, FORECAST)) |>
@@ -119,24 +120,24 @@ forecast_features_processed <-
   select(-matches("forecast"))
 
 # Merge history and forecast ----------------------------------------------
+processed_dataset <-
+  left_join(
+    history_features_processed,
+    forecast_features_processed,
+    by = join_by(COUNTRY, BASECODE, APO_CUST_LEVEL2_CODE),
+    relationship = "one-to-one",
+    na_matches = "never"
+  ) |>
+  mutate(across(matches("positive_first_\\d"), ~ replace_na(.x, 0))) |>
+  # Get the target label `LIFECYCLE_BASECODE`
+  left_join(
+    distinct(active_sku, COUNTRY, BASECODE, APO_CUST_LEVEL2_CODE, LIFECYCLE_BASECODE),
+    by = join_by(COUNTRY, BASECODE, APO_CUST_LEVEL2_CODE),
+    relationship = "one-to-one",
+    na_matches = "never"
+  ) |>
+  na.omit()
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# Export data -------------------------------------------------------------
+write_rds(processed_dataset, here("pre-processed data", "processed_dataset.rds"), compress = "gz")
