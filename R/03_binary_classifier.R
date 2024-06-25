@@ -43,11 +43,6 @@ elastic_spec <-
   set_engine("glmnet") |>
   set_mode("classification")
 
-knn_spec <-
-  nearest_neighbor(neighbors = tune(), weight_func = tune()) |>
-  set_engine("kknn") |>
-  set_mode("classification")
-
 gbm_spec <-
   boost_tree(mtry = tune(), trees = tune(), min_n = tune()) |>
   set_engine("xgboost") |>
