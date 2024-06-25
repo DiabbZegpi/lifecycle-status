@@ -27,7 +27,7 @@ rec_normalized <-
 rec_interact <-
   base_rec |>
   step_interact(
-    terms = ~ starts_with("positive_last_"):starts_with("positive_first"),
+    terms = ~ matches("positive_last_0"):matches("positive_last_[123]"),
     keep_original_cols = TRUE
   )
 
