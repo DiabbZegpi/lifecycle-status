@@ -63,7 +63,7 @@ binary_models <- workflow_set(
 ) |>
   anti_join(tibble(wflow_id = c("normalized_xgboost")), by = join_by("wflow_id"))
 
-wlows_res <- workflow_map(
+wflow_res <- workflow_map(
   binary_models,
   fn = "tune_grid",
   resamples = folds,
@@ -72,18 +72,48 @@ wlows_res <- workflow_map(
   verbose = TRUE
 )
 
-# Try benchmark model
-logistic_fit <- fit(workflow(spec = logistic_reg(), preprocessor = base_rec), data = train_df)
+# XGBoost doesn´t outperform elastic net by much
+# (isn't even outside the interval range)
+wflow_res |>
+  autoplot(select_best = TRUE)
 
-augment(logistic_fit, new_data = val_df, type = "prob") |>
-  brier_class(truth = LIFECYCLE_BASECODE, .pred_REGULAR)
-
-
-wlows_res |> filter(!str_detect(wflow_id, "xgboost")) |> autoplot(select_best = TRUE)
-
-
-
-
+wflow_res |>
+  collect_metrics(summarize = TRUE) |>
+  filter(.metric == "brier_class") |>
+  filter(model == "logistic_reg") |>
+  slice_min(mean, n = 20, with_ties = FALSE)
 
 
+# Finalize model ----------------------------------------------------------
+best_model <-
+  wflow_res |>
+  extract_workflow_set_result("interactions_elastic_net") |>
+  select_by_one_std_err(metric = "brier_class", desc(penalty))
 
+binary_classifier <-
+  wflow_res |>
+  extract_workflow("interactions_elastic_net") |>
+  finalize_workflow(best_model) |>
+  fit(data = train_df)
+
+# Test set metrics match validation set estimations
+binary_classifier |>
+  augment(new_data = test_df) |>
+  # brier_class(truth = LIFECYCLE_BASECODE, .pred_REGULAR)
+  # accuracy(truth = LIFECYCLE_BASECODE, .pred_class)
+  roc_auc(truth = LIFECYCLE_BASECODE, .pred_REGULAR)
+
+theme_set(theme_bw(base_size = 14, base_family = "Roboto"))
+
+binary_classifier |>
+  augment(new_data = test_df) |>
+  mutate(LIFECYCLE_BASECODE = paste("True class:", LIFECYCLE_BASECODE)) |>
+  ggplot(aes(x = .pred_REGULAR, fill = LIFECYCLE_BASECODE)) +
+  geom_histogram(bins = 30, color = "white", show.legend = FALSE) +
+  facet_wrap(~LIFECYCLE_BASECODE, ncol = 1) +
+  labs(x = "P(Y = REGULAR)", title = "Predictions on the test set", y = "Frequency") +
+  scale_fill_brewer(palette = "Set2")
+
+# Export models -----------------------------------------------------------
+write_rds(binary_classifier, here("models", "elastic_net_interactions.rds"), compress = "gz")
+write_rds(wflow_res, here("models", "workflow_sets.rds"), compress = "gz")
