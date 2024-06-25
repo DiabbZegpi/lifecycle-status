@@ -50,7 +50,6 @@ gbm_spec <-
 
 models <- list(
   elastic_net = elastic_spec,
-  knn = knn_spec,
   xgboost = gbm_spec
 )
 
