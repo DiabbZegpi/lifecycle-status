@@ -9,3 +9,4 @@
 config.yml
 input\ data/
 pre\-processed\ data
+models/
